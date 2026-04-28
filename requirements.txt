@@ -1,0 +1,12 @@
+ollama
+requests
+playwright
+beautifulsoup4
+lxml
+pandas
+rich
+typer
+streamlit
+python-dotenv
+pytest
+pytest-mock
