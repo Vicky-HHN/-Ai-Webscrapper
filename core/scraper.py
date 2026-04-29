@@ -13,12 +13,17 @@ class ScraperOrchestrator:
         self.cleaner = Cleaner()
         self.exporter = Exporter()
 
-    def run(self, prompt):
+    def run(self, prompt, status_callback=None):
         """
         Executes the full scraping pipeline.
         """
+        def report(msg):
+            print(msg)
+            if status_callback:
+                status_callback(msg)
+
         # 1. Interpret prompt
-        print(f"Interpreting prompt: {prompt}")
+        report(f"🔍 Analyzing prompt with AI...")
         interpretation = self.llm.interpret_prompt(prompt)
         url = interpretation.get('url')
         fields = interpretation.get('fields')
@@ -28,25 +33,26 @@ class ScraperOrchestrator:
             raise ValueError("Could not identify target URL from prompt.")
 
         # 2. Fetch page
-        print(f"Fetching page: {url}")
+        report(f"🌐 Fetching page: {url}")
         html = self.fetcher.fetch(url)
         if not html:
             raise Exception(f"Failed to fetch content from {url}")
 
         # 3. Validate page
+        report("🛡️ Validating page authenticity...")
         is_valid_page, reason = self.validator.validate_page(html, url)
         if not is_valid_page:
             raise Exception(f"Page validation failed: {reason}")
 
         # 4. Parse fields
-        print("Parsing content...")
+        report(f"🏗️ Extracting {len(fields)} fields from content...")
         raw_records = Parser.parse(html, fields, selectors)
         if not raw_records:
              print("No records found during parsing.")
              return None
 
         # 5. Clean and Validate Data
-        print("Cleaning and validating data...")
+        report(f"🧹 Cleaning and validating {len(raw_records)} records...")
         cleaned_records = [self.cleaner.clean_record(r) for r in raw_records]
         valid_records = self.validator.validate_data(cleaned_records)
         unique_records = self.validator.deduplicate(valid_records)
@@ -56,13 +62,13 @@ class ScraperOrchestrator:
             return None
 
         # 6. LLM Final Validation
-        print("Final LLM validation...")
+        report("🧠 Performing final LLM data validation...")
         validation_result = self.llm.validate_data(unique_records, prompt)
         if not validation_result.get('is_valid'):
             print(f"LLM Warning: {', '.join(validation_result.get('anomalies', []))}")
 
         # 7. Export
-        print("Exporting data...")
+        report("💾 Exporting data to JSON and CSV...")
         metadata = {
             "source_url": url,
             "user_prompt": prompt,

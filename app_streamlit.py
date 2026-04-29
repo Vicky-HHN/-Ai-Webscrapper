@@ -42,19 +42,13 @@ st.markdown("""
         animation: fadeIn 0.8s ease-out;
     }
 
-    /* Card Styling */
-    .card {
+    /* Container Styling (replacing custom cards) */
+    [data-testid="stVerticalBlockBorderWrapper"] > div {
         background-color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-        margin-bottom: 2rem;
-        border: 1px solid #e0e0e0;
-        transition: transform 0.3s ease;
-    }
-
-    .card:hover {
-        transform: scale(1.01);
+        border-radius: 15px !important;
+        border: 1px solid #e0e0e0 !important;
+        padding: 1.5rem !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
     /* Button Styling */
@@ -122,7 +116,18 @@ def check_ollama():
     except:
         return False
 
+def init_session_state():
+    if "config" not in st.session_state:
+        st.session_state.config = {
+            "scraperapi_key": SCRAPERAPI_KEY or "",
+            "scrapingbee_key": SCRAPINGBEE_KEY or "",
+            "ollama_model": OLLAMA_MODEL or "llama3",
+            "ollama_host": OLLAMA_HOST or "http://localhost:11434"
+        }
+
 def main():
+    init_session_state()
+
     # --- Sidebar ---
     with st.sidebar:
         st.markdown('<div class="sidebar-header">🕸️ SmartScraper AI</div>', unsafe_allow_html=True)
@@ -147,30 +152,40 @@ def main():
         st.markdown("##### Turn any natural language prompt into clean, structured data.")
 
         if not ollama_status:
-            st.error(f"⚠️ **Ollama Offline:** Unable to reach `{OLLAMA_HOST}`. Please ensure Ollama is running.")
+            with st.container(border=True):
+                st.error(f"⚠️ **Ollama Offline:** Unable to reach `{st.session_state.config['ollama_host']}`")
+                st.info("""
+                    **How to fix:**
+                    1. Ensure [Ollama](https://ollama.com/) is installed and running on your machine.
+                    2. Pull the required model by running: `ollama pull llama3` (or your selected model).
+                    3. If you are using a custom endpoint, check it in the **Settings** tab.
+                """)
 
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        prompt = st.text_area(
-            "What would you like to scrape today?",
-            placeholder="e.g. Scrape the product name, price, and rating of the latest iPhone models from Amazon.",
-            height=120,
-            help="Describe the site and the fields you want to extract."
-        )
+        with st.container(border=True):
+            prompt = st.text_area(
+                "What would you like to scrape today?",
+                placeholder="e.g. Scrape the product name, price, and rating of the latest iPhone models from Amazon.",
+                height=120,
+                help="Describe the site and the fields you want to extract."
+            )
 
-        col1, col2, col3 = st.columns([1, 1.5, 1])
-        with col2:
-            start_button = st.button("✨ Start Magic Scraping")
-        st.markdown('</div>', unsafe_allow_html=True)
+            col1, col2, col3 = st.columns([1, 1.5, 1])
+            with col2:
+                start_button = st.button("✨ Start Magic Scraping")
 
         if start_button:
             if prompt:
                 with st.status("🛠️ Working on your request...", expanded=True) as status:
                     try:
+                        # Use session state for dynamic config
                         orchestrator = ScraperOrchestrator()
+                        # Override orchestrator config from session state
+                        orchestrator.llm.model = st.session_state.config['ollama_model']
+                        orchestrator.llm.client.base_url = st.session_state.config['ollama_host']
+                        orchestrator.fetcher.scraperapi_key = st.session_state.config['scraperapi_key']
+                        orchestrator.fetcher.scrapingbee_key = st.session_state.config['scrapingbee_key']
 
-                        st.write("🔍 Analyzing prompt with AI...")
-                        # In a real app, we might add more granular feedback here
-                        result = orchestrator.run(prompt)
+                        result = orchestrator.run(prompt, status_callback=st.write)
 
                         if result:
                             status.update(label="✅ Scraping Complete!", state="complete", expanded=False)
@@ -213,7 +228,13 @@ def main():
                             st.warning("The scraper couldn't find any data matching your request.")
                     except Exception as e:
                         status.update(label="❌ An error occurred.", state="error")
-                        st.error(f"Error details: {e}")
+                        error_msg = str(e)
+                        if "connection" in error_msg.lower() or "11434" in error_msg:
+                            st.error("🔌 **Connection Error:** Could not reach the Ollama server. Is it running?")
+                        elif "model" in error_msg.lower() and "not found" in error_msg.lower():
+                            st.error(f"🧠 **Model Missing:** The model `{st.session_state.config['ollama_model']}` was not found. Try running `ollama pull {st.session_state.config['ollama_model']}`.")
+                        else:
+                            st.error(f"Error details: {e}")
             else:
                 st.warning("Please provide a prompt to start.")
 
@@ -236,16 +257,15 @@ def main():
                     data = json.load(f)
 
                 # Summary Cards
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Records", data['metadata'].get('total_records', 0))
-                m2.metric("Fields", len(data['metadata'].get('fields_extracted', [])))
-                m3.metric("Format", "JSON/CSV")
-                m4.metric("Status", "Completed")
+                with st.container(border=True):
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Records", data['metadata'].get('total_records', 0))
+                    m2.metric("Fields", len(data['metadata'].get('fields_extracted', [])))
+                    m3.metric("Format", "JSON/CSV")
+                    m4.metric("Status", "Completed")
 
-                st.write(f"**URL:** {data['metadata'].get('source_url')}")
-                st.write(f"**Prompt:** {data['metadata'].get('user_prompt')}")
-                st.markdown('</div>', unsafe_allow_html=True)
+                    st.write(f"**URL:** {data['metadata'].get('source_url')}")
+                    st.write(f"**Prompt:** {data['metadata'].get('user_prompt')}")
 
                 st.subheader("Data Preview")
                 st.dataframe(pd.DataFrame(data['records']), use_container_width=True)
@@ -258,34 +278,45 @@ def main():
     elif page == "⚙️ Settings":
         st.title("⚙️ System Settings")
 
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🔑 API Credentials")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            s_api = st.text_input("ScraperAPI Key", value=SCRAPERAPI_KEY or "", type="password", help="Primary fetching API")
-        with col_b:
-            sb_api = st.text_input("ScrapingBee Key", value=SCRAPINGBEE_KEY or "", type="password", help="Fallback fetching API")
+        with st.container(border=True):
+            st.subheader("🔑 API Credentials")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                s_api = st.text_input("ScraperAPI Key", value=st.session_state.config['scraperapi_key'], type="password", help="Primary fetching API")
+            with col_b:
+                sb_api = st.text_input("ScrapingBee Key", value=st.session_state.config['scrapingbee_key'], type="password", help="Fallback fetching API")
 
-        st.markdown("---")
+            st.markdown("---")
 
-        st.subheader("🤖 Local LLM (Ollama)")
-        col_c, col_d = st.columns(2)
-        with col_c:
-            model = st.selectbox("Default Model", ["llama3", "mistral", "phi3", "llama2"], index=0)
-        with col_d:
-            host = st.text_input("Ollama Endpoint", value=OLLAMA_HOST)
+            st.subheader("🤖 Local LLM (Ollama)")
+            col_c, col_d = st.columns(2)
+            with col_c:
+                current_model = st.session_state.config['ollama_model']
+                model_options = ["llama3", "mistral", "phi3", "llama2"]
+                model_idx = model_options.index(current_model) if current_model in model_options else 0
+                model = st.selectbox("Default Model", model_options, index=model_idx)
+            with col_d:
+                host = st.text_input("Ollama Endpoint", value=st.session_state.config['ollama_host'])
 
-        if st.button("💾 Save Configuration"):
-            with open(".env", "w") as f:
-                f.write(f"SCRAPERAPI_KEY={s_api}\n")
-                f.write(f"SCRAPINGBEE_KEY={sb_api}\n")
-                f.write(f"OLLAMA_MODEL={model}\n")
-                f.write(f"OLLAMA_HOST={host}\n")
-                f.write(f"OUTPUT_DIR=outputs\n")
-                f.write(f"LOG_DIR=logs\n")
-            st.toast("Settings saved!", icon="✅")
-            st.success("Configuration updated successfully.")
-        st.markdown('</div>', unsafe_allow_html=True)
+            if st.button("💾 Save Configuration"):
+                # Update session state
+                st.session_state.config.update({
+                    "scraperapi_key": s_api,
+                    "scrapingbee_key": sb_api,
+                    "ollama_model": model,
+                    "ollama_host": host
+                })
+
+                # Persist to .env
+                with open(".env", "w") as f:
+                    f.write(f"SCRAPERAPI_KEY={s_api}\n")
+                    f.write(f"SCRAPINGBEE_KEY={sb_api}\n")
+                    f.write(f"OLLAMA_MODEL={model}\n")
+                    f.write(f"OLLAMA_HOST={host}\n")
+                    f.write(f"OUTPUT_DIR=outputs\n")
+                    f.write(f"LOG_DIR=logs\n")
+                st.toast("Settings saved!", icon="✅")
+                st.success("Configuration updated successfully.")
 
 if __name__ == "__main__":
     main()
