@@ -46,14 +46,22 @@ class Cleaner:
         Extracts float from rating string and ensures it's between 0-5.
         """
         try:
+            # Handle cases like "4.5/5" or "90/100"
+            if "/" in value:
+                parts = value.split("/")
+                nums_numerator = re.findall(r"[-+]?\d*\.\d+|\d+", parts[0])
+                nums_denominator = re.findall(r"[-+]?\d*\.\d+|\d+", parts[1])
+                if nums_numerator and nums_denominator:
+                    numerator = float(nums_numerator[0])
+                    denominator = float(nums_denominator[0])
+                    if denominator != 0:
+                        # Normalize to 5-point scale
+                        return round((numerator / denominator) * 5, 2)
+
             nums = re.findall(r"[-+]?\d*\.\d+|\d+", value)
             if nums:
                 rating = float(nums[0])
-                # If rating is like "4.5 out of 5", it's 4.5
-                # If it's just "4.5", it's 4.5
-                if rating > 5 and "/" in value:
-                     # Handle cases like "90/100" -> would be 4.5? Let's just return raw if not sure
-                     pass
+                # Cap to 5.0 if it's already on a 5-point scale
                 return min(max(rating, 0.0), 5.0)
             return None
         except:

@@ -1,7 +1,0 @@
-Scrape Session Metadata
-=======================
-Source URL: https://example.com
-Scraped At: 2026-04-28_23-16
-User Prompt: Mock prompt for example.com
-Fields Extracted: title, content
-Total Records: 1

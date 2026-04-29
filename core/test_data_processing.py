@@ -40,13 +40,24 @@ def test_parser_basic():
     assert len(records) > 0
     assert records[0]["title"] == "iPhone"
 
-@patch('core.exporter.OUTPUT_DIR')
-def test_exporter(mock_output_dir, tmp_path):
-    mock_output_dir.return_value = tmp_path
-    # In reality, the class uses the constant from config.py,
-    # so we might need to patch it differently or just let it write to the actual outputs/ for testing
-    # but for unit test, let's just test the logic
-    pass
+def test_exporter(tmp_path):
+    # Setup tmp_path as the output dir for this test
+    with patch('core.exporter.OUTPUT_DIR', tmp_path):
+        data = [{"name": "Test", "price": 100.0}]
+        metadata = {
+            "source_url": "https://test.com",
+            "user_prompt": "Test Prompt",
+            "fields_extracted": ["name", "price"]
+        }
+        json_path, csv_path = Exporter.export(data, metadata)
+
+        assert os.path.exists(json_path)
+        assert os.path.exists(csv_path)
+
+        with open(json_path, 'r') as f:
+            saved_json = json.load(f)
+            assert saved_json["metadata"]["total_records"] == 1
+            assert saved_json["records"][0]["name"] == "Test"
 
 from unittest.mock import patch
 import re
