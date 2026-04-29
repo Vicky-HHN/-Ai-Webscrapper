@@ -280,16 +280,41 @@ def main():
 
         with st.container(border=True):
             st.subheader("🔑 API Credentials")
-            col_a, col_b = st.columns(2)
+            st.markdown("""
+            Need keys? Get them here:
+            [ScraperAPI](https://www.scraperapi.com/) (Primary) |
+            [ScrapingBee](https://www.scrapingbee.com/) (Fallback)
+            """)
+
+            col_a, col_b = st.columns(2, gap="large")
             with col_a:
-                s_api = st.text_input("ScraperAPI Key", value=st.session_state.config['scraperapi_key'], type="password", help="Primary fetching API")
+                s_api = st.text_input(
+                    "ScraperAPI Key",
+                    value=st.session_state.config['scraperapi_key'],
+                    type="password",
+                    placeholder="sapi-..."
+                )
+                if s_api:
+                    st.markdown("<span style='color: #4CAF50; font-size: 0.8rem;'>● Key provided</span>", unsafe_allow_html=True)
+                else:
+                    st.markdown("<span style='color: #FF4B4B; font-size: 0.8rem;'>● Key missing</span>", unsafe_allow_html=True)
+
             with col_b:
-                sb_api = st.text_input("ScrapingBee Key", value=st.session_state.config['scrapingbee_key'], type="password", help="Fallback fetching API")
+                sb_api = st.text_input(
+                    "ScrapingBee Key",
+                    value=st.session_state.config['scrapingbee_key'],
+                    type="password",
+                    placeholder="spb-..."
+                )
+                if sb_api:
+                    st.markdown("<span style='color: #4CAF50; font-size: 0.8rem;'>● Key provided</span>", unsafe_allow_html=True)
+                else:
+                    st.markdown("<span style='color: #FF4B4B; font-size: 0.8rem;'>● Key missing</span>", unsafe_allow_html=True)
 
             st.markdown("---")
 
             st.subheader("🤖 Local LLM (Ollama)")
-            col_c, col_d = st.columns(2)
+            col_c, col_d = st.columns(2, gap="large")
             with col_c:
                 current_model = st.session_state.config['ollama_model']
                 model_options = ["llama3", "mistral", "phi3", "llama2"]
