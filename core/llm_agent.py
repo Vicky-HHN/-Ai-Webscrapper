@@ -15,7 +15,8 @@ class LLMAgent:
             "You are an AI assistant that helps with web scraping. "
             "Given a user prompt, identify the target URL and the data fields they want to extract. "
             "Also suggest additional relevant fields and provide CSS selectors or XPath hints if possible. "
-            "Return the response in strictly JSON format with keys: 'url', 'fields', 'suggested_fields', 'selectors'."
+            "Return the response in strictly JSON format with keys: 'url', 'fields', 'suggested_fields', 'selectors', 'pagination'. "
+            "'pagination' should contain: 'type' ('none', 'url_parameter', or 'selector'), 'parameter_name' (if url_parameter), 'next_selector' (if selector), 'max_pages' (default 3)."
         )
 
         try:

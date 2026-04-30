@@ -21,7 +21,9 @@ AI-powered web scraping application that translates natural language prompts int
    pip install -r requirements.txt
    playwright install chromium
    ```
-3. Set up environment variables:
+3. Get API Keys:
+   Register for free tiers at [ScraperAPI](https://www.scraperapi.com/) and [ScrapingBee](https://www.scrapingbee.com/) to get your keys.
+4. Set up environment variables:
    Copy `.env.example` to `.env` and fill in your API keys.
    ```bash
    cp .env.example .env
@@ -44,9 +46,9 @@ python main.py dashboard
 ```
 
 ## Example Prompts
-- "Scrape the title and price of the top 10 books from books.toscrape.com"
-- "Extract news headlines and their links from news.ycombinator.com"
-- "Get the latest smartphone names and prices from an e-commerce site"
+- "Scrape the first 3 pages of iPhone 15 Pro listings from Amazon including name and price."
+- "Extract news headlines and their links from news.ycombinator.com, first 2 pages."
+- "Get the latest smartphone names and prices from an e-commerce site, scrape 5 pages."
 
 ## Architecture
 - `core/llm_agent.py`: Ollama integration.
