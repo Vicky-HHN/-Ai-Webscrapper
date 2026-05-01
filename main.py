@@ -5,15 +5,30 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from core.scraper import ScraperOrchestrator
 import subprocess
 import os
+import requests
+from config import OLLAMA_HOST
 
 app = typer.Typer()
 console = Console()
+
+def check_ollama_cli():
+    try:
+        response = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=2)
+        return response.status_code == 200
+    except:
+        return False
 
 @app.command()
 def scrape(prompt: str = typer.Option(..., help="The natural language prompt for scraping")):
     """
     Scrape data based on a natural language prompt.
     """
+    if not check_ollama_cli():
+        console.print("[bold red]Error:[/bold red] Ollama is not running.")
+        console.print(f"Please ensure Ollama is installed and running at {OLLAMA_HOST}")
+        console.print("Run: [bold cyan]ollama serve[/bold cyan] in a separate terminal.")
+        raise typer.Exit(code=1)
+
     orchestrator = ScraperOrchestrator()
 
     with Progress(

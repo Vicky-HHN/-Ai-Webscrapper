@@ -20,6 +20,22 @@ def test_pagination_selector():
     next_url = scraper._get_next_url(current_url, html, pagination, 2)
     assert next_url == "https://example.com/page2"
 
+def test_parser_attribute_extraction():
+    from core.parser import Parser
+    html = """
+    <div class="item">
+        <a class="link" href="/prod1">Product 1</a>
+        <img class="thumb" src="thumb.jpg">
+    </div>
+    """
+    fields = ["link", "image"]
+    selectors = {"link": "a.link", "image": "img.thumb"}
+    base_url = "https://example.com"
+
+    records = Parser.parse(html, fields, selectors, base_url=base_url)
+    assert records[0]["link"] == "https://example.com/prod1"
+    assert records[0]["image"] == "https://example.com/thumb.jpg"
+
 @patch('core.scraper.LLMAgent')
 @patch('core.scraper.Fetcher')
 @patch('core.scraper.Validator')

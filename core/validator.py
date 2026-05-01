@@ -1,6 +1,9 @@
 import re
 from urllib.parse import urlparse
 from config import LOG_DIR
+from core.logger import setup_logger
+
+logger = setup_logger("validator")
 
 class Validator:
     @staticmethod
@@ -8,13 +11,21 @@ class Validator:
         """
         Validates the page authenticity and content.
         """
-        if not html or len(html) < 500:
-            return False, "Page content too short or empty."
+        if not html:
+            return False, "Page content empty."
 
         # Check for common CAPTCHA or error indicators
-        error_indicators = ["captcha", "robot check", "access denied", "403 forbidden"]
+        error_indicators = ["captcha", "robot check", "access denied", "403 forbidden", "unusual activity", "verify you are a human"]
         if any(indicator in html.lower() for indicator in error_indicators):
-            return False, "Page triggered a CAPTCHA or access was denied."
+            # Special case: some pages might have "captcha" in some hidden script but still be valid.
+            # But usually it's a bad sign.
+            return False, f"Page triggered a CAPTCHA or access was denied (detected '{[i for i in error_indicators if i in html.lower()][0]}')."
+
+        if len(html) < 500:
+             # Soften the length check if it looks like a valid JSON or small valid page
+             if html.strip().startswith('{') and html.strip().endswith('}'):
+                 return True, "Success (JSON detected)"
+             return False, f"Page content too short ({len(html)} chars)."
 
         # Verify domain matches (optional but recommended)
         parsed_target = urlparse(target_url)
@@ -38,8 +49,10 @@ class Validator:
             total_fields = len(record)
 
             if total_fields > 0 and (null_count / total_fields) > 0.5:
+                msg = f"REJECTED: Too many nulls ({null_count}/{total_fields}). Record: {record}"
+                logger.warning(msg)
                 with open(rejected_log_path, "a") as f:
-                    f.write(f"REJECTED: Too many nulls ({null_count}/{total_fields}). Record: {record}\n")
+                    f.write(msg + "\n")
                 continue
 
             valid_records.append(record)

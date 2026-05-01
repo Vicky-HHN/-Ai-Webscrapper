@@ -4,10 +4,12 @@ from core.parser import Parser
 from core.validator import Validator
 from core.cleaner import Cleaner
 from core.exporter import Exporter
+from core.logger import setup_logger
 import time
 
 class ScraperOrchestrator:
     def __init__(self):
+        self.logger = setup_logger("scraper")
         self.llm = LLMAgent()
         self.fetcher = Fetcher()
         self.validator = Validator()
@@ -19,7 +21,7 @@ class ScraperOrchestrator:
         Executes the full multi-page scraping pipeline.
         """
         def report(msg):
-            print(msg)
+            self.logger.info(msg)
             if status_callback:
                 status_callback(msg)
 
@@ -57,7 +59,8 @@ class ScraperOrchestrator:
 
             # 4. Parse fields
             report(f"🏗️ Extracting {len(fields)} fields...")
-            raw_records = Parser.parse(html, fields, selectors)
+            container_selector = interpretation.get('item_container_selector')
+            raw_records = Parser.parse(html, fields, selectors, base_url=current_url, container_selector=container_selector)
             if not raw_records:
                  report("No records found on this page.")
             else:

@@ -185,6 +185,8 @@ def main():
                         orchestrator.fetcher.scraperapi_key = st.session_state.config['scraperapi_key']
                         orchestrator.fetcher.scrapingbee_key = st.session_state.config['scrapingbee_key']
 
+                        # We can also pass a callback that uses st.empty to update a single line
+                        # but st.write inside st.status works well for a list of steps.
                         result = orchestrator.run(prompt, status_callback=st.write)
 
                         if result:

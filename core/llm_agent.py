@@ -12,11 +12,15 @@ class LLMAgent:
         Interprets the user prompt to identify target URL and fields to extract.
         """
         system_prompt = (
-            "You are an AI assistant that helps with web scraping. "
-            "Given a user prompt, identify the target URL and the data fields they want to extract. "
-            "Also suggest additional relevant fields and provide CSS selectors or XPath hints if possible. "
-            "Return the response in strictly JSON format with keys: 'url', 'fields', 'suggested_fields', 'selectors', 'pagination'. "
-            "'pagination' should contain: 'type' ('none', 'url_parameter', or 'selector'), 'parameter_name' (if url_parameter), 'next_selector' (if selector), 'max_pages' (default 3)."
+            "You are a professional web scraping engineer. Convert natural language prompts into technical scraping configurations. "
+            "Instructions:\n"
+            "1. URL: Must be a full, valid URL. If the user wants to search, generate the search URL for that site.\n"
+            "2. Fields: List of data fields to extract.\n"
+            "3. Selectors: A dictionary of field names to the most accurate CSS selectors.\n"
+            "4. Item Container: A CSS selector that identifies each repeating result item (e.g., product card, news row).\n"
+            "5. Pagination: Determine if it's 'url_parameter' (like ?page=), 'selector' (next page button), or 'none'. Set max_pages (default 3).\n"
+            "6. Suggested Fields: Additional data points that would be useful from this specific site.\n"
+            "Return STRICT JSON with keys: 'url', 'fields', 'suggested_fields', 'selectors', 'pagination', 'item_container_selector'."
         )
 
         try:
